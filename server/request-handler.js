@@ -12,7 +12,7 @@ this file and include it in basic-server.js so that it actually works.
   
 **************************************************************/
 var pages = [{route: '/classes/room1', results:[]},{route:'/classes/messages', results:[]}];
-
+var fs = require("fs");
 var requestHandler = function(request, response) {
   // Request and Response come from node's http module.
   //
@@ -44,7 +44,8 @@ var requestHandler = function(request, response) {
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  if (request.method === 'GET'){
+
+  if (request.method === 'GET' || request.method === 'OPTIONS'){
 
     var found = false;
     pages.forEach(function(page){
@@ -52,11 +53,21 @@ var requestHandler = function(request, response) {
         found = true;
         response.writeHead(statusCode, headers);
         response.end(JSON.stringify(page)); 
-      } 
+      } else if (request.url === '/') {
+        found = true;
+        fs.readFile("../client/index.html", function(err, data){
+          response.writeHead(200, {'Content-Type': 'text/html'});
+          response.write(data, function(err) { 
+            response.end(); 
+          }); 
+          // response.write(data);
+          // response.end();
+        });
+      }
     });
     if (!found) {
       response.writeHead(404, headers);
-      response.end("404: Page not found");
+      response.end();
     }
    
   } else if (request.method === 'POST'){
@@ -69,12 +80,12 @@ var requestHandler = function(request, response) {
           page.results.push(JSON.parse(data));
         });
         response.writeHead(201, headers);
-        response.end('Post recieved');
+        response.end(JSON.stringify(page));
       } 
     });
     if (!found) {
       response.writeHead(404, headers);
-      response.end("Page not found");
+      response.end();
     }
   }
   // Make sure to always call response.end() - Node may not send
